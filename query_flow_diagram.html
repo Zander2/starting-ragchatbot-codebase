@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG System Query Flow Diagram</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+        }
+
+        h2 {
+            color: #555;
+            border-bottom: 2px solid #007acc;
+            padding-bottom: 5px;
+            margin-top: 40px;
+        }
+
+        .diagram-container {
+            margin: 30px 0;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+
+        .mermaid {
+            text-align: center;
+        }
+
+        .description {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #2196f3;
+            margin: 20px 0;
+        }
+
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .tech-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+
+        .tech-item h4 {
+            margin: 0 0 8px 0;
+            color: #495057;
+        }
+
+        .tech-item p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 RAG System Query Processing Flow</h1>
+
+        <div class="description">
+            <strong>Overview:</strong> This diagram shows how a user query flows through the RAG (Retrieval-Augmented Generation) chatbot system, from frontend user interaction to backend AI processing and response delivery.
+        </div>
+
+        <h2>🔄 Sequence Flow Diagram</h2>
+        <div class="diagram-container">
+            <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant F as Frontend
+    participant A as FastAPI
+    participant R as RAGSystem
+    participant AI as AIGenerator
+    participant T as ToolManager
+    participant V as VectorStore
+    participant C as Claude API
+
+    U->>F: Types query & clicks send
+    F->>F: Disable UI, show loading
+    F->>A: POST /api/query
+
+    A->>A: Create session if needed
+    A->>R: rag_system.query()
+
+    R->>R: Build prompt
+    R->>R: Get conversation history
+    R->>AI: generate_response()
+
+    AI->>AI: Build system prompt
+    AI->>C: messages.create() with tools
+
+    alt Claude decides to search
+        C-->>AI: tool_use request
+        AI->>T: execute_tool()
+        T->>V: search()
+        V->>V: Embed query
+        V->>V: Search ChromaDB
+        V-->>T: Search results
+        T->>T: Format results
+        T-->>AI: Formatted results
+        AI->>C: messages.create() with results
+        C-->>AI: Final response
+    else Use general knowledge
+        C-->>AI: Direct response
+    end
+
+    AI-->>R: Generated response
+    R->>T: get_last_sources()
+    T-->>R: Sources list
+    R->>R: Update history
+    R-->>A: response and sources
+
+    A-->>F: JSON response
+    F->>F: Remove loading
+    F->>F: Add message
+    F->>F: Add sources
+    F-->>U: Display response
+            </div>
+        </div>
+
+        <h2>🏗️ Component Architecture</h2>
+        <div class="diagram-container">
+            <div class="mermaid">
+graph TB
+    subgraph "Frontend Layer"
+        UI[Web UI<br/>index.html]
+        JS[JavaScript<br/>script.js]
+        CSS[Styling<br/>style.css]
+    end
+
+    subgraph "API Layer"
+        FastAPI[FastAPI Server<br/>app.py]
+        Models[Pydantic Models<br/>models.py]
+        Config[Configuration<br/>config.py]
+    end
+
+    subgraph "RAG Core"
+        RAGSys[RAG System<br/>rag_system.py]
+        SessionMgr[Session Manager<br/>session_manager.py]
+    end
+
+    subgraph "AI & Search"
+        AIGen[AI Generator<br/>ai_generator.py]
+        Tools[Tool Manager<br/>search_tools.py]
+        SearchTool[Course Search Tool]
+    end
+
+    subgraph "Data Layer"
+        VectorStore[Vector Store<br/>vector_store.py]
+        DocProcessor[Document Processor<br/>document_processor.py]
+        ChromaDB[(ChromaDB<br/>Vector Database)]
+        CourseFiles[(Course Files<br/>docs/*.txt)]
+    end
+
+    subgraph "External APIs"
+        ClaudeAPI[Anthropic Claude API]
+        Embeddings[Sentence Transformers<br/>Embeddings]
+    end
+
+    UI --> JS
+    JS --> FastAPI
+    FastAPI --> RAGSys
+    FastAPI --> Models
+    FastAPI --> Config
+    RAGSys --> AIGen
+    RAGSys --> SessionMgr
+    RAGSys --> Tools
+    AIGen --> ClaudeAPI
+    AIGen --> Tools
+    Tools --> SearchTool
+    SearchTool --> VectorStore
+    VectorStore --> ChromaDB
+    VectorStore --> Embeddings
+    DocProcessor --> CourseFiles
+    DocProcessor --> VectorStore
+
+    classDef frontend fill:#e1f5fe
+    classDef api fill:#f3e5f5
+    classDef rag fill:#e8f5e8
+    classDef ai fill:#fff3e0
+    classDef data fill:#fce4ec
+    classDef external fill:#f1f8e9
+
+    class UI,JS,CSS frontend
+    class FastAPI,Models,Config api
+    class RAGSys,SessionMgr rag
+    class AIGen,Tools,SearchTool ai
+    class VectorStore,DocProcessor,ChromaDB,CourseFiles data
+    class ClaudeAPI,Embeddings external
+            </div>
+        </div>
+
+        <h2>🔑 Key Flow Points</h2>
+        <div class="tech-stack">
+            <div class="tech-item">
+                <h4>🎯 User Input</h4>
+                <p>Frontend captures and validates user queries with real-time UI feedback</p>
+            </div>
+            <div class="tech-item">
+                <h4>🌐 HTTP Request</h4>
+                <p>FastAPI receives and routes requests with proper error handling</p>
+            </div>
+            <div class="tech-item">
+                <h4>🎭 RAG Orchestration</h4>
+                <p>Central coordinator manages all system components and data flow</p>
+            </div>
+            <div class="tech-item">
+                <h4>🤖 AI Decision</h4>
+                <p>Claude intelligently decides whether to search or use general knowledge</p>
+            </div>
+            <div class="tech-item">
+                <h4>🔍 Tool Execution</h4>
+                <p>Semantic search in ChromaDB vector database when needed</p>
+            </div>
+            <div class="tech-item">
+                <h4>✨ Response Synthesis</h4>
+                <p>Claude combines search results into coherent, contextual answers</p>
+            </div>
+            <div class="tech-item">
+                <h4>📱 UI Update</h4>
+                <p>Frontend displays response with sources and maintains conversation flow</p>
+            </div>
+            <div class="tech-item">
+                <h4>💾 Session Management</h4>
+                <p>Conversation history tracked across queries for context</p>
+            </div>
+        </div>
+
+        <h2>🛠️ Technology Stack</h2>
+        <div class="tech-stack">
+            <div class="tech-item">
+                <h4>Frontend</h4>
+                <p>Vanilla JavaScript, HTML5, CSS3</p>
+            </div>
+            <div class="tech-item">
+                <h4>Backend</h4>
+                <p>Python FastAPI, Pydantic</p>
+            </div>
+            <div class="tech-item">
+                <h4>AI</h4>
+                <p>Anthropic Claude API with tool calling</p>
+            </div>
+            <div class="tech-item">
+                <h4>Vector DB</h4>
+                <p>ChromaDB with sentence-transformers</p>
+            </div>
+            <div class="tech-item">
+                <h4>Search</h4>
+                <p>Semantic similarity matching</p>
+            </div>
+            <div class="tech-item">
+                <h4>Session</h4>
+                <p>In-memory conversation history</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true
+            },
+            sequence: {
+                useMaxWidth: true,
+                wrap: true
+            }
+        });
+    </script>
+</body>
+</html>

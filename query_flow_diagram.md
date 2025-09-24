@@ -2,56 +2,55 @@
 
 ```mermaid
 sequenceDiagram
-    participant User
-    participant Frontend as Frontend<br/>(script.js)
-    participant API as FastAPI<br/>(app.py)
-    participant RAG as RAGSystem<br/>(rag_system.py)
-    participant AI as AIGenerator<br/>(ai_generator.py)
-    participant Tools as ToolManager<br/>(search_tools.py)
-    participant Vector as VectorStore<br/>(vector_store.py)
-    participant Claude as Anthropic<br/>Claude API
+    participant U as User
+    participant F as Frontend
+    participant A as FastAPI
+    participant R as RAGSystem
+    participant AI as AIGenerator
+    participant T as ToolManager
+    participant V as VectorStore
+    participant C as Claude API
 
-    User->>Frontend: Types query & clicks send
-    Frontend->>Frontend: Disable UI, show loading
-    Frontend->>API: POST /api/query<br/>{query, session_id}
+    U->>F: Types query & clicks send
+    F->>F: Disable UI, show loading
+    F->>A: POST /api/query
 
-    API->>API: Create session if needed
-    API->>RAG: rag_system.query(query, session_id)
+    A->>A: Create session if needed
+    A->>R: rag_system.query()
 
-    RAG->>RAG: Build prompt:<br/>"Answer this question about course materials: {query}"
-    RAG->>RAG: Get conversation history
-    RAG->>AI: generate_response(prompt, history, tools, tool_manager)
+    R->>R: Build prompt
+    R->>R: Get conversation history
+    R->>AI: generate_response()
 
-    AI->>AI: Build system prompt + context
-    AI->>Claude: messages.create() with tools enabled
+    AI->>AI: Build system prompt
+    AI->>C: messages.create() with tools
 
-    alt Claude decides to use search tool
-        Claude-->>AI: tool_use: search_course_content
-        AI->>Tools: execute_tool("search_course_content", query, filters)
-        Tools->>Vector: search(query, course_name, lesson_number)
-        Vector->>Vector: Embed query with sentence-transformers
-        Vector->>Vector: Search ChromaDB collections
-        Vector-->>Tools: SearchResults with documents & metadata
-        Tools->>Tools: Format results + store sources
-        Tools-->>AI: Formatted search results
-        AI->>Claude: messages.create() with tool results
-        Claude-->>AI: Final synthesized response
-    else Claude uses general knowledge
-        Claude-->>AI: Direct response without tools
+    alt Claude decides to search
+        C-->>AI: tool_use request
+        AI->>T: execute_tool()
+        T->>V: search()
+        V->>V: Embed query
+        V->>V: Search ChromaDB
+        V-->>T: Search results
+        T->>T: Format results
+        T-->>AI: Formatted results
+        AI->>C: messages.create() with results
+        C-->>AI: Final response
+    else Use general knowledge
+        C-->>AI: Direct response
     end
 
-    AI-->>RAG: Generated response text
-    RAG->>Tools: get_last_sources()
-    Tools-->>RAG: Sources list
-    RAG->>RAG: Update conversation history
-    RAG-->>API: (response, sources)
+    AI-->>R: Generated response
+    R->>T: get_last_sources()
+    T-->>R: Sources list
+    R->>R: Update history
+    R-->>A: response and sources
 
-    API-->>Frontend: JSON response<br/>{answer, sources, session_id}
-    Frontend->>Frontend: Remove loading spinner
-    Frontend->>Frontend: Add message with markdown
-    Frontend->>Frontend: Add collapsible sources
-    Frontend->>Frontend: Re-enable UI, scroll down
-    Frontend-->>User: Display response with sources
+    A-->>F: JSON response
+    F->>F: Remove loading
+    F->>F: Add message
+    F->>F: Add sources
+    F-->>U: Display response
 ```
 
 ## Component Architecture
