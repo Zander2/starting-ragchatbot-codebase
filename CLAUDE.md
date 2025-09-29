@@ -15,7 +15,7 @@ uv sync
 
 # Create environment file
 cp .env.example .env
-# Edit .env and add your ANTHROPIC_API_KEY
+# Edit .env and add your OPENROUTER_API_KEY
 ```
 
 ### Running the Application
@@ -29,6 +29,8 @@ cd backend && uv run uvicorn app:app --reload --port 8000
 # Access the application
 # Web Interface: http://localhost:8000
 # API Documentation: http://localhost:8000/docs
+
+# Note: Ensure OPENROUTER_API_KEY is set in .env before running
 ```
 
 ### Development Environment
@@ -72,7 +74,7 @@ The system uses a **tool-based RAG approach** where:
 - Manages conversation history via `SessionManager`
 
 **AI Generation with Tools (`backend/ai_generator.py`)**
-- Interfaces with Anthropic Claude API using tool calling
+- Interfaces with Anthropic Claude via OpenRouter API using tool calling
 - Handles two-phase tool execution: tool request → tool execution → final response
 - Uses static system prompt optimized for educational content
 
@@ -97,7 +99,7 @@ Key settings:
 - `CHUNK_OVERLAP: 100` - Overlap between chunks
 - `MAX_RESULTS: 5` - Search results returned
 - `MAX_HISTORY: 2` - Conversation messages to remember
-- `ANTHROPIC_MODEL: "claude-sonnet-4-20250514"` - Claude model version
+- `ANTHROPIC_MODEL: "anthropic/claude-3.5-sonnet"` - Claude model via OpenRouter
 - `CHROMA_PATH: "./chroma_db"` - ChromaDB storage location
 - `EMBEDDING_MODEL: "all-MiniLM-L6-v2"` - Sentence transformer model
 
@@ -129,7 +131,7 @@ Key settings:
 - Test files should follow pattern: `test_*.py` or `*_test.py`
 
 ### Common Development Issues
-- **Missing API key**: Ensure ANTHROPIC_API_KEY is set in `.env`
+- **Missing API key**: Ensure OPENROUTER_API_KEY is set in `.env`
 - **ChromaDB errors**: Clear database with `rm -rf backend/chroma_db` and restart
 - **Document processing failures**: Check file permissions and formats in `docs/`
 - **Port conflicts**: Default port 8000 can be changed in run command
@@ -137,7 +139,7 @@ Key settings:
 ## Required Environment Variables
 
 ```bash
-ANTHROPIC_API_KEY=sk-ant-...  # Required - get from console.anthropic.com
+OPENROUTER_API_KEY=sk-or-v1-...  # Required - get from openrouter.ai
 ```
 
 ## File Structure Context

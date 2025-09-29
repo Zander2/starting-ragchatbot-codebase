@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Union
 import os
 
 from config import config
@@ -35,21 +35,35 @@ app.add_middleware(
 rag_system = RAGSystem(config)
 
 # Pydantic models for request/response
+class SourceObject(BaseModel):
+    """Source object with text and optional URL"""
+    text: str
+    url: Optional[str] = None
+
 class QueryRequest(BaseModel):
     """Request model for course queries"""
     query: str
     session_id: Optional[str] = None
 
+class NewSessionRequest(BaseModel):
+    """Request model for creating new session"""
+    current_session_id: Optional[str] = None
+
 class QueryResponse(BaseModel):
     """Response model for course queries"""
     answer: str
-    sources: List[str]
+    sources: List[Union[str, SourceObject]]
     session_id: str
 
 class CourseStats(BaseModel):
     """Response model for course statistics"""
     total_courses: int
     course_titles: List[str]
+
+class NewSessionResponse(BaseModel):
+    """Response model for new session creation"""
+    session_id: str
+    message: str
 
 # API Endpoints
 
@@ -81,6 +95,24 @@ async def get_course_stats():
         return CourseStats(
             total_courses=analytics["total_courses"],
             course_titles=analytics["course_titles"]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/new-session", response_model=NewSessionResponse)
+async def create_new_session(request: NewSessionRequest):
+    """Create a new session and optionally clear the current one"""
+    try:
+        # Clear the current session if provided
+        if request.current_session_id:
+            rag_system.session_manager.clear_session(request.current_session_id)
+
+        # Create a new session
+        new_session_id = rag_system.session_manager.create_session()
+
+        return NewSessionResponse(
+            session_id=new_session_id,
+            message="New session created successfully"
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
